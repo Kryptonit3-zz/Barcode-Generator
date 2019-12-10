@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+        <meta name="description" content="">
+        <meta name="author" content="">
+
+        <title>Edgewater Investments</title>
+
+        <!-- Bootstrap core CSS -->
+        <link href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css" rel="stylesheet">
+        <link href="https://stackpath.bootstrapcdn.com/font-awesome/4.7.0/css/font-awesome.min.css" rel="stylesheet">
+        <link href="titatoggle-dist-min.css" rel="stylesheet">
+
+        <!-- Custom styles for this template -->
+        <link href="custom.css" rel="stylesheet">
+        <link href="print.css" rel="stylesheet">
+    </head>
+    <body>
+        <div id="app" class="container">
+            <div class="d-print-none">
+                <div class="row">
+                    <div class="col-sm-1">
+                        <a class="delete-barcode-all" href="#" @click.prevent="deleteBarcodes()" title="delete all"><i class="fa fa-times-circle-o" aria-hidden="true"></i></a>
+                    </div>
+                    <div class="col-sm-10">
+                        <input type="text" id="barcode-input" @paste="processPaste" tabindex="3" minlength="3" maxlength="50" v-model="barcodeInput" placeholder="BARCODE">
+                        <form class="form-inline" style="margin-bottom:15px;">
+                            <div class="form-group">
+                                <input type="text" class="form-control mr-2" id="identify" tabindex="1" minlength="3" maxlength="50" v-model="identify" placeholder="Tech Number etc">
+                            </div>
+                            <div class="form-group">
+                                <select class="form-control mr-2" tabindex="2" v-model="selectType">
+                                    <option></option>
+                                    <option>Assigned Equipment</option>
+                                    <option>Returned Equipment</option>
+                                </select>
+                            </div>
+                            <button type="button" id="icomsCopyButtom" class="btn btn-primary btn-small mr-2">
+                                ICOMS Copy
+                             </button>
+                             <button type="button" id="print" class="btn btn-dark btn-small mr-2" onclick="window.print()">
+                                 Print
+                              </button>
+                              <button type="button" class="btn btn-danger"><span class="badge">{{ barcodes.length }}</span> Pieces</button>
+                              <div class="form-check checkbox-slider--c checkbox-slider-danger" style="margin-top:15px;">
+                              	<label>
+                              		<input type="checkbox" v-model="globalColumn">
+                                  <span style="margin-left:5px;">Single Column?</span>
+                              	</label>
+                              </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+            <!-- Modal -->
+            <div class="modal fade" id="icomsCopy" tabindex="-1" role="dialog" aria-labelledby="exampleModalCenterTitle" aria-hidden="true">
+              <div class="modal-dialog modal-lg" role="document">
+                <div class="modal-content">
+                  <div class="modal-body">
+                    <p>ICOMS only allows pasting 14 serial numbers at a time so serial numbers have been broken up for you.</p>
+                    <div class="row" id="icomsCopyMain">
+                      <div class="col-sm-4" v-for="(subArray, index) in icomsArrays">
+                          <textarea class="form-control icomsCopyContainer mb-1" :id="'icomsArrays_' + index" rows="7" readonly v-model="subArray.map(x => x.serial).join('\r\n')"></textarea>
+                          <button class="copy2clipboard btn btn-success btn-sm" :data-clipboard-target="'#icomsArrays_' + index" alt="Copy to clipboard">Copy!</button>
+                      </div>
+                    </div>
+                  </div>
+                  <div class="modal-footer">
+                    <button type="button" class="btn btn-primary" data-dismiss="modal">Close</button>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div class="row d-print" style="display:none;" id="identify-row">
+                <div class="col-sm-12">
+                  <p style="text-align:right;">
+                    <span id="identify-p">{{ identify }} {{ selectType }} - {{ barcodes.length }} Pieces</span>
+                    <span id="identify-d"></span>
+                  </p>
+                  <p id="signatures">Signatures _________________________________________________________________________________</p>
+                </div>
+                <br />
+            </div>
+            <div class="row">
+                <div style="padding-top:7px;padding-bottom: 7px;" :class="'col-sm-'+barcode.columnSize+' barcodeRow'" v-for="(barcode, index) in reversedOrderBarcodes">
+                  <barcode :value="barcode.serial" tag="svg" :options="{ 'height': 30, 'margin': 0, textAlign: 'left' }">
+                  </barcode>
+                  <div v-if="globalColumn == false" title="Single Column?" class="d-print-none form-check checkbox-slider--c checkbox-slider-sm checkbox-slider-danger" style="position:absolute;right:40px;top:14px;">
+                    <label>
+                      <input type="checkbox" @change="updateArrayColumn(barcode.serial,$event)" v-model="barcode.alternateColumn"><span></span>
+                    </label>
+                  </div>
+                  <a class="d-print-none" href="#" @click.prevent="deleteBarcode(barcode.serial)" style="position:absolute;right:15px;top:10px;" :title="'delete barcode: ' + barcode.serial">
+                    <i class="fa fa-times-circle-o" aria-hidden="true"></i>
+                  </a>
+                </div>
+            </div>
+        </div>
+
+        <script src="https://code.jquery.com/jquery-3.3.1.min.js"></script>
+        <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js"></script>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/scannerdetection/1.2.0/jquery.scannerdetection.min.js"></script>
+        <!-- <script src="https://cdn.jsdelivr.net/npm/vue@2.5.17/dist/vue.js"></script> -->
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/vue/2.5.17/vue.min.js"></script>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/clipboard.js/2.0.0/clipboard.min.js"></script>
+        <script src="bundle.js"></script>
+
+        <!-- Global site tag (gtag.js) - Google Analytics -->
+        <script async src="https://www.googletagmanager.com/gtag/js?id=UA-124241856-1"></script>
+        <script>
+          window.dataLayer = window.dataLayer || [];
+          function gtag(){dataLayer.push(arguments);}
+          gtag('js', new Date());
+
+          gtag('config', 'UA-124241856-1');
+        </script>
+
+
+    </body>
+</html>
